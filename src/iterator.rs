@@ -1,17 +1,17 @@
 use crate::Activated;
 use crate::Capture;
 use crate::Error;
-use crate::PacketCodec;
+use crate::LendingIterator;
+use crate::Packet;
 
 /// Implement an Iterator of Packet
-pub struct PacketIter<S: Activated + ?Sized, C> {
+pub struct PacketIter<S: Activated + ?Sized> {
     capture: Capture<S>,
-    codec: C,
 }
 
-impl<S: Activated + ?Sized, C> PacketIter<S, C> {
-    pub(crate) fn new(capture: Capture<S>, codec: C) -> Self {
-        Self { capture, codec }
+impl<S: Activated + ?Sized> PacketIter<S> {
+    pub(crate) fn new(capture: Capture<S>) -> Self {
+        Self { capture }
     }
 
     pub fn capture_mut(&mut self) -> &mut Capture<S> {
@@ -19,18 +19,18 @@ impl<S: Activated + ?Sized, C> PacketIter<S, C> {
     }
 }
 
-impl<S: Activated + ?Sized, C> From<PacketIter<S, C>> for (Capture<S>, C) {
-    fn from(iter: PacketIter<S, C>) -> Self {
-        (iter.capture, iter.codec)
+impl<S: Activated + ?Sized> From<PacketIter<S>> for Capture<S> {
+    fn from(iter: PacketIter<S>) -> Self {
+        iter.capture
     }
 }
 
-impl<S: Activated + ?Sized, C: PacketCodec> Iterator for PacketIter<S, C> {
-    type Item = Result<C::Item, Error>;
+impl<S: Activated + ?Sized> LendingIterator for PacketIter<S> {
+    type Item<'a> = Result<Packet<'a>, Error> where S: 'a;
 
-    fn next(&mut self) -> Option<Self::Item> {
+    fn next(&mut self) -> Option<Self::Item<'_>> {
         match self.capture.next() {
-            Ok(packet) => Some(Ok(self.codec.decode(packet))),
+            Ok(packet) => Some(Ok(packet)),
             Err(Error::NoMorePackets) => None,
             Err(e) => Some(Err(e)),
         }

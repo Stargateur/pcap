@@ -1,3 +1,5 @@
+#![feature(generic_associated_types)]
+
 //! pcap is a packet capture library available on Linux, Windows and Mac. This
 //! crate supports creating and configuring capture contexts, sniffing packets,
 //! sending packets to interfaces, listing devices, and recording packet captures
@@ -92,6 +94,9 @@ pub use stream::PacketStream;
 
 mod iterator;
 pub use iterator::PacketIter;
+
+mod lending_iterator;
+pub use lending_iterator::LendingIterator;
 
 mod codec;
 pub use codec::PacketCodec;
@@ -1149,8 +1154,8 @@ impl<T: Activated + ?Sized> Capture<T> {
     }
 
     /// Return an iterator that call [`Self::next()`] forever. Require a [`PacketCodec`]
-    pub fn iter<C: PacketCodec>(self, codec: C) -> PacketIter<T, C> {
-        PacketIter::new(self, codec)
+    pub fn iter(self) -> PacketIter<T> {
+        PacketIter::new(self)
     }
 
     /// Returns this capture as a [`futures::Stream`] of packets.
